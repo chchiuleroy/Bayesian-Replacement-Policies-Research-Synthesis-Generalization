@@ -60,9 +60,9 @@ The following symbols are used consistently throughout this document and the acc
 | Symbol | Definition |
 |--------|-----------|
 | $T$ | Planned replacement age threshold |
-| $T^{\ast}$ | Optimal unconstrained replacement age |
+| $T^*$ | Optimal unconstrained replacement age |
 | $T_\omega$ | Safety-threshold age: $\sup\{T : b(T) \leq -\ln(1-\omega)\}$ |
-| $T^{\ast}_{SC} = \min(T^{\ast}, T_\omega)$ | Safety-constrained optimal replacement age |
+| $T^*_{SC} = \min(T^*, T_\omega)$ | Safety-constrained optimal replacement age |
 | $K$ | Minimum failure count before planned replacement ([3]) |
 | $N$ | Maximum failure count triggering replacement ([3]) |
 | $S$ | Minimum cumulative working time required before replacement ([3]) |
@@ -97,9 +97,9 @@ The following symbols are used consistently throughout this document and the acc
 | $\pi(\cdot)$ | Prior or posterior distribution over model parameters |
 | $(\tilde{n}, \lambda, \gamma, y_n)$ | Sufficient statistics for conjugate posterior (Huang & Bier [7]) |
 | $(\theta_0,\ldots,\theta_{m-1})$ | Dirichlet hyperparameters for failure mode probabilities |
-| $R_1^{\ast}$ | Random cost incurred in one replacement cycle |
-| $Y_1^{\ast}$ | Random length of one replacement cycle |
-| $C_B(T) = E_\pi[R_1^{\ast}] / E_\pi[Y_1^{\ast}]$ | Bayesian long-run cost rate (Renewal Reward Theorem) |
+| $R_1^{*}$ | Random cost incurred in one replacement cycle |
+| $Y_1^{*}$ | Random length of one replacement cycle |
+| $C_B(T) = E_\pi[R_1^{*}] / E_\pi[Y_1^{*}]$ | Bayesian long-run cost rate (Renewal Reward Theorem) |
 
 ### Parallel-Series System (Simulation)
 
@@ -197,8 +197,8 @@ $$P(N_m(A)\geq 1)\leq\omega$$
 limiting the probability of a non-repairable catastrophic failure in the safety window
 $[0,A]$. The constrained optimum is:
 
-$$T_{SC}^{\ast} = \min(T^{\ast},\, T_\omega),\qquad
-T_\omega = \sup\{T \gt 0 : b(T)\leq -\ln(1-\omega)\}$$
+$$T_{SC}^{*} = \min(T^*,\, T_\omega),\qquad
+T_\omega = \sup\{T>0 : b(T)\leq -\ln(1-\omega)\}$$
 
 In [2] this constraint governs a scalar age-replacement policy.
 The GMBRM **lifts the safety constraint to the full five-dimensional co-policy
@@ -221,7 +221,7 @@ $$\text{Policy}(p,K,N,S,T) = p\cdot(T,K,N)\;+\;(1-p)\cdot(N,S,T)$$
 This five-dimensional policy embeds and generalizes all classical univariate policies
 (age replacement: $N\to\infty$; block replacement: $T$ fixed; failure-count: $T\to\infty$).
 The optimal cost rate under [3]'s numerical example illustrates the policy
-non-trivially selects $p^{\ast}=0$, meaning the $(N,S,T)$ sub-policy dominates.
+non-trivially selects $p^*=0$, meaning the $(N,S,T)$ sub-policy dominates.
 
 The GMBRM combines this policy structure with Bayesian parameter uncertainty —
 where the expected cost rate integral must now be taken over the posterior on
@@ -243,12 +243,102 @@ The GMBRM synthesis identifies four open problems at the intersection of the pap
 
 ---
 
-### 7. Cross-domain Methodological Bridges
+### 8. Integration Roadmap: Safety-Constrained Co-Policy (SCCP)
+
+The **Safety-Constrained Trivariate** direction identified in §6 requires lifting the
+scalar safety constraint from [2] into the five-dimensional co-policy space of [3].
+This section formalises the integration framework and maps it to the implementation
+in `safety_constrained_copolicy.py`.
+
+#### 8.1 The Core Problem
+
+In [2] the safety function is:
+
+$$b(T) = p_m\,\alpha T^\beta \leq -\ln(1-\omega)$$
+
+This holds because the replacement age is deterministically $T$ (or the first catastrophic
+failure time, whichever is earlier). Under the five-dimensional co-policy
+$\mathbf{u} = (\tilde{p}, K, N, S, T)$, the actual replacement time $\tau^*(\mathbf{u})$
+is **random**, driven by whichever trigger fires first. The safety function must therefore be:
+
+$$g(\mathbf{u}) = p_m\,\alpha\,E_{\mathbf{u}}\!\left[(\tau^*)^\beta\right] \leq -\ln(1-\omega)$$
+
+The safety constraint $g(\mathbf{u}) \leq -\ln(1-\omega)$ is the **five-dimensional
+generalisation** of the scalar $T^*_{SC} = \min(T^*, T_\omega)$ from [2].
+
+#### 8.2 Decomposition by Sub-Policy
+
+The co-policy decomposes $g$ linearly via the mixing weight $\tilde{p}$:
+
+$$g(\mathbf{u}) = \tilde{p}\cdot g_1(K,N,T) + (1-\tilde{p})\cdot g_2(N,S,T)$$
+
+where:
+- $g_1(K,N,T) = p_m\,\alpha\,E\!\left[(\tau_1^*)^\beta\right]$ — sub-policy $(T,K,N)$:
+  replace at $\min(T, T_N)$ but not before $K$ failures have occurred
+- $g_2(N,S,T) = p_m\,\alpha\,E\!\left[(\tau_2^*)^\beta\right]$ — sub-policy $(N,S,T)$:
+  replace at $\max(S, \min(T_N, T))$, i.e., not before cumulative working time $\geq S$
+
+Both expectations are computed via Monte Carlo simulation of the NHPP failure process.
+
+**Degenerate recovery:** when $K=0,\; N\to\infty,\; S=0,\; \tilde{p}=1$:
+$g(\mathbf{u})\to b(T)$, recovering the scalar constraint from [2] exactly.
+
+#### 8.3 Feasibility Pre-Check
+
+Before optimising, the following conditions must be verified. Violating any one creates
+a region where no feasible solution exists:
+
+| Condition | Algebraic form | Reason |
+|-----------|---------------|--------|
+| Min working time below safety limit | $S \leq T_\omega$ | $S$ forces operation past the safe age |
+| Expected time to $K$-th failure within safety limit | $K\cdot E[W_1] \leq T_\omega$ | Mandatory wait for $K$ failures may exceed safe horizon |
+| Consistent failure counts | $K \leq N$ | Cannot require more failures than the replacement trigger |
+
+where $T_\omega = \left(-\ln(1-\omega)\,/\,(p_m\,\alpha)\right)^{1/\beta}$ is the
+scalar safety threshold from [2], and $E[W_1] = \Gamma(1+1/\beta)\,/\,(\alpha^{1/\beta})$
+is the expected first inter-failure time.
+
+#### 8.4 Adaptive Safety Threshold under Geometric Deterioration
+
+Under the geometric process with ratio $a > 1$, the effective NHPP scale parameter
+grows as $\alpha_n = \alpha\cdot a^{(n-1)\beta}$, so the safety threshold
+**shrinks each replacement cycle**:
+
+$$T_{\omega,n} = T_\omega\cdot a^{-(n-1)}$$
+
+A static policy tuple $(\tilde{p}, K, N, S, T)$ will eventually violate the safety
+constraint as $n$ increases. The PSRL agent resolves this by recomputing the
+constrained optimum each cycle using the current $T_{\omega,n}$.
+
+#### 8.5 Three Fusion Architectures
+
+| Architecture | Formulation | Advantage | Limitation |
+|---|---|---|---|
+| **Lagrangian relaxation** | $\min_{\mathbf{u}} C(\mathbf{u}) + \lambda\max(0,g(\mathbf{u})-\omega)$ | No convexity needed; easy grid search | $\lambda$ calibration; not exact on non-convex $\mathcal{F}$ |
+| **Two-stage projection** | Find $\mathcal{F}=\{g\leq\omega\}$, then $\min_{\mathbf{u}\in\mathcal{F}} C(\mathbf{u})$ | Clean separation of safety and cost | Requires characterising $\mathcal{F}$ first |
+| **PSRL + safety budget** | Constrained Thompson Sampling with adaptive $T_{\omega,n}$ | Unifies Bayesian learning + deterioration | Higher variance at early episodes |
+
+#### 8.6 Implementation Roadmap (`safety_constrained_copolicy.py`)
+
+Incremental steps, each with a verifiable target:
+
+| Step | What changes | Verification target |
+|------|-------------|---------------------|
+| 1. Degenerate check | $K=0,\, N\to\infty,\, S=0,\, \tilde{p}=1$ | $g(\mathbf{u}) \approx b(T)$ matches `paper_a_replication.py` |
+| 2. Add $N$ | $K=0,\, S=0$, vary $N$ | $g$ decreases as $N$ decreases (earlier forced replacement) |
+| 3. Add $K$ | $N>K>0,\, S=0$ | $g$ increases vs. step 2 (forced exposure during $K$-wait) |
+| 4. Add $S$ | Full $(N,S,T)$ | Infeasible region appears at $S > T_\omega$ |
+| 5. Lagrangian search | Joint 5-D grid + $\lambda$ sweep | Constrained $\mathbf{u}^*$ satisfies $g \leq \omega$ |
+| 6. Adaptive PSRL | $T_{\omega,n}$ integrated into PSRL loop | Safety constraint satisfied in all late cycles |
+
+---
+
+### 9. Cross-domain Methodological Bridges
 
 The Power Law NHPP intensity $r(t\mid\alpha,\beta)=\alpha\beta t^{\beta-1}$ shares
 structural features with the **Hawkes self-exciting process** conditional intensity
 
-$$\lambda^{\ast}(t)=\mu+\sum_{t_i \lt t}\phi(t-t_i)$$
+$$\lambda^*(t)=\mu+\sum_{t_i \lt t}\phi(t-t_i)$$
 
 Both are parametric point-process intensities fitted to failure-time data via
 maximum likelihood, admit natural conjugate or near-conjugate Bayesian priors,
@@ -273,13 +363,13 @@ to a specific $(\alpha,\beta)$ parametrization.
 
 The GMBRM minimizes the long-run expected cost rate via the Renewal Reward Theorem:
 
-$$C^{\ast}(\mathbf{u}) = \min_{\mathbf{u}} \frac{E_\pi[\text{cost per cycle}]}{E_\pi[\text{cycle length}]}$$
+$$C^*(\mathbf{u}) = \min_{\mathbf{u}} \frac{E_\pi[\text{cost per cycle}]}{E_\pi[\text{cycle length}]}$$
 
 where $\mathbf{u}=(p,K,N,S,T)$ is the co-policy, expectations are taken over the
 posterior $\pi(\alpha,\beta,a,b\mid\text{data})$, and the cycle cost
-$R_1^{\ast}(\mathbf{u})$ decomposes as:
+$R_1^{*}(\mathbf{u})$ decomposes as:
 
-$$E_\pi[R_1^{\ast}] = -c_w\,\Omega_1 + c_r\,\Omega_2 + \eta\,\Omega_3 + c_e\,v + c$$
+$$E_\pi[R_1^{*}] = -c_w\,\Omega_1 + c_r\,\Omega_2 + \eta\,\Omega_3 + c_e\,v + c$$
 
 with $\Omega_1,\Omega_2,\Omega_3$ integrating over geometric-process CDFs
 $H_n(t)=F(a^{n-1}t)$ and Bayesian-averaged NHPP survival functions.
@@ -303,12 +393,12 @@ $H_n(t)=F(a^{n-1}t)$ and Bayesian-averaged NHPP survival functions.
 ### Existence and Uniqueness of Optimal Policy ([1][2])
 
 Under the regularity conditions that $r(t)$ is continuous and strictly increasing
-and $C_F > C_P$, a unique finite $T^{\ast}$ exists satisfying the first-order condition.
+and $C_F > C_P$, a unique finite $T^*$ exists satisfying the first-order condition.
 With the safety constraint, the constrained optimum is:
 
-$$T_{SC}^{\ast} =
+$$T_{SC}^{*} =
 \begin{cases}
-T^{\ast} & \text{if } T^{\ast} \leq T_\omega \\
+T^* & \text{if } T^* \leq T_\omega \\
 T_\omega & \text{otherwise}
 \end{cases}$$
 
@@ -317,7 +407,7 @@ T_\omega & \text{otherwise}
 After observing $n$ failures at times $y_1 \lt \cdots \lt y_n$, the Bayesian expected
 cost rate integrates over the natural conjugate posterior:
 
-$$C_B(T) = \frac{E_\pi[R_1^{\ast}(T)]}{E_\pi[Y_1^{\ast}(T)]}$$
+$$C_B(T) = \frac{E_\pi[R_1^{*}(T)]}{E_\pi[Y_1^{*}(T)]}$$
 
 where $E_\pi[\cdot]$ has closed form due to conjugacy — the posterior marginals
 remain $\mathrm{Gamma}$ and $\mathrm{Dirichlet}$ after sequential updating.
@@ -351,7 +441,7 @@ NHPP Power Law calibrated parameters: **α = 0.7, β = 2.0**
 
 **Replication of [1] Tables 3 & 4** (`code/paper_a_replication.py`)
 
-The tables show how the optimal replacement time $T^{\ast}$ and Bayesian cost rate $C_B(T^{\ast})$
+The tables show how the optimal replacement time $T^*$ and Bayesian cost rate $C_B(T^*)$
 evolve as we update the prior with each successive cycle, for three partial-repair
 fractions $\gamma \in \{0.2, 0.5, 0.7\}$.
 
@@ -393,11 +483,11 @@ fractions $\gamma \in \{0.2, 0.5, 0.7\}$.
 
 - **Conjugate prior** (Table 3, Beta(1,9)) starts with strong prior belief $p \approx 0.1$
   (low minor-repair fraction); after C1 the evidence of many minor failures
-  pulls $p$ upward, shortening $T^{\ast}$ from 3.0 to 2.059 (γ=0.2).
-- **Non-informative prior** (Table 4, Beta(1,1)) reacts more sharply — $T^{\ast}$ drops
+  pulls $p$ upward, shortening $T^*$ from 3.0 to 2.059 (γ=0.2).
+- **Non-informative prior** (Table 4, Beta(1,1)) reacts more sharply — $T^*$ drops
   by a larger margin after C1, then stabilises across C2–C3 as the posterior
   concentrates.
-- **Higher γ** (more partial repair benefit) pushes $T^{\ast}$ upward: the system
+- **Higher γ** (more partial repair benefit) pushes $T^*$ upward: the system
   is economically worth keeping longer when minor repairs are more effective.
 - **Safety probability** decreases after each cycle as posterior on $p$ rises
   (more failures are minor, fewer are catastrophic), consistent with the
@@ -533,10 +623,10 @@ and extending them to richer topologies.
 | Experiment | Varies | Fixed | Output |
 |------------|--------|-------|--------|
 | **Baseline replication** | — | $(k,r)=(1,1)$, $a=b=1$ | Reproduce [1] Tables 3 & 4 |
-| **Redundancy sweep** | $r \in \{1,2,3,4\}$ | $k=2$, $a=b=1$ | $T^{\ast}$ vs. parallel redundancy |
-| **Series depth sweep** | $k \in \{1,2,3\}$ | $r=2$, $a=b=1$ | $T^{\ast}$ vs. series depth |
-| **Deterioration sensitivity** | $a \in [1.0, 1.2]$ | $k=r=2$ | $T^{\ast}$, cost rate vs. $a$ |
-| **Safety constraint tightening** | $\omega \in \{0.01,0.05,0.10\}$ | $k=r=2$, $a=1.05$ | $T^{\ast}_{SC}$ vs. $\omega$ per topology |
+| **Redundancy sweep** | $r \in \{1,2,3,4\}$ | $k=2$, $a=b=1$ | $T^*$ vs. parallel redundancy |
+| **Series depth sweep** | $k \in \{1,2,3\}$ | $r=2$, $a=b=1$ | $T^*$ vs. series depth |
+| **Deterioration sensitivity** | $a \in [1.0, 1.2]$ | $k=r=2$ | $T^*$, cost rate vs. $a$ |
+| **Safety constraint tightening** | $\omega \in \{0.01,0.05,0.10\}$ | $k=r=2$, $a=1.05$ | $T^*_{SC}$ vs. $\omega$ per topology |
 | **Co-policy on network** | $(p,K,N,S,T)$ | $k=r=2$, $a=1.05$ | Optimal 5-D policy under deterioration |
 
 The last two rows constitute the **Safety-Constrained Trivariate** and
@@ -564,8 +654,8 @@ n=2 000–3 000 Monte Carlo cycles per $T$ evaluation.
 - Series depth $k$ is the dominant driver: $k=3$ raises cost rate by **71%** vs. baseline
   and pushes safety probability to 0.477 — far exceeding ω=0.05.
 - Parallel redundancy $r$ improves safety dramatically (0.194 → 0.008) at the cost of
-  higher per-cycle repair cost, with $T^{\ast}$ barely changing (2.66 → 2.77).
-- Geometric deterioration ($a=1.1$) compresses $T^{\ast}$ by 12% and inflates cost rate
+  higher per-cycle repair cost, with $T^*$ barely changing (2.66 → 2.77).
+- Geometric deterioration ($a=1.1$) compresses $T^*$ by 12% and inflates cost rate
   by 1.9%, while slightly worsening the safety margin.
 - Low minor-repair probability ($p=0.30$) increases catastrophic-failure exposure,
   raising cost rate by 29% and safety probability to 0.310.
@@ -600,9 +690,9 @@ The safety constraint is first satisfied at **r=3** (Safety P = 0.016 < ω=0.05)
 | 1.30 | 1.200 | 15.601 | 0.081 |
 
 As the geometric process deterioration ratio $a$ increases, the system ages faster:
-$T^{\ast}$ shrinks by 32% (1.763 → 1.200) and the cost rate increases monotonically.
+$T^*$ shrinks by 32% (1.763 → 1.200) and the cost rate increases monotonically.
 The safety probability first rises then plateaus — reflecting a balance between faster
-deterioration and shorter $T^{\ast}$ (fewer cycles reach catastrophic failure).
+deterioration and shorter $T^*$ (fewer cycles reach catastrophic failure).
 This non-monotone safety curve is a direct consequence of the [3] geometric
 process structure embedded in the parallel-series simulation.
 
@@ -612,7 +702,7 @@ process structure embedded in the parallel-series simulation.
 
 ### Motivation
 
-The three papers fix the replacement policy as a parametric family (threshold $T^{\ast}$,
+The three papers fix the replacement policy as a parametric family (threshold $T^*$,
 or tuple $(p,K,N,S,T)$) and optimise within that family using the posterior mean.
 A natural extension is to treat replacement scheduling as a **sequential decision
 problem under uncertainty** — and apply Bayesian reinforcement learning to learn the
@@ -633,14 +723,14 @@ The replacement cycle maps naturally to a Markov Decision Process:
 **PSRL algorithm** (Strens 2000; Osband et al. 2013):
 
 1. At the start of each episode, **sample** $(\alpha, \beta, p) \sim \pi_{\text{posterior}}$
-2. **Compute** $T^{\ast}(\alpha,\beta,p)$ — optimal threshold under sampled parameters
-3. **Execute** policy $T^{\ast}$ for this episode; observe $(n_{\text{minor}}, n_{\text{cat}}, T_{\text{actual}})$
+2. **Compute** $T^*(\alpha,\beta,p)$ — optimal threshold under sampled parameters
+3. **Execute** policy $T^*$ for this episode; observe $(n_{\text{minor}}, n_{\text{cat}}, T_{\text{actual}})$
 4. **Update** posterior with observed data → go to step 1
 
 This unifies Thompson Sampling (exploration via posterior sampling) with the MDP
 structure (multi-step planning under the sampled model). The key insight is that
 **uncertainty in $(p)$ drives exploration**: when the posterior on $p$ is wide,
-different sampled $T^{\ast}$ values are tried; as it concentrates, the policy stabilises.
+different sampled $T^*$ values are tried; as it concentrates, the policy stabilises.
 
 ### Agents Compared
 
