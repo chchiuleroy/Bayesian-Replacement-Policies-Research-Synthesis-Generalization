@@ -31,7 +31,7 @@ The following symbols are used consistently throughout this document and the acc
 | $\Lambda(t) = \alpha t^{\beta}$ | Cumulative intensity (integrated hazard) |
 | $\bar{F}(t) = \exp\{-\Lambda(t)\}$ | Component survival function |
 | $n$ | Number of observed failures in a cycle |
-| $y_1 < \cdots < y_n$ | Observed failure times |
+| $y_1 \lt \cdots \lt y_n$ | Observed failure times |
 
 ### Failure Mode Structure
 
@@ -39,7 +39,7 @@ The following symbols are used consistently throughout this document and the acc
 |--------|-----------|
 | $m$ | Number of minor repair modes ($m \geq 1$) |
 | $p_j$, $j=0,\ldots,m-1$ | Probability of failure mode $j$ (minor repair) |
-| $p_m = 1 - \sum_{j<m} p_j$ | Probability of non-repairable catastrophic failure |
+| $p_m = 1 - \sum_{j \lt m} p_j$ | Probability of non-repairable catastrophic failure |
 | $p$ | Minor repair probability in scalar case ([1]) |
 | $\gamma$ | Partial repair effectiveness fraction ([1]); $\gamma=0$ is minimal repair |
 
@@ -82,7 +82,7 @@ The following symbols are used consistently throughout this document and the acc
 | Symbol | Definition |
 |--------|-----------|
 | $C_F$ | Cost of unplanned (non-repairable catastrophic) replacement |
-| $C_P$ | Cost of planned replacement ($C_P < C_F$) |
+| $C_P$ | Cost of planned replacement ($C_P \lt C_F$) |
 | $C_j$ | Cost of minor repair of mode $j$ |
 | $c_w$ | Reward rate earned during working periods ([3]) |
 | $c_r$ | Cost per repair event ([3]) |
@@ -146,7 +146,7 @@ References [1][2] model systems with up to $m+2$ competing failure modes:
 
 [3] models **geometric process deterioration** — working times
 $\{X_n\}$ stochastically decreasing ($F_n(t) = F(a^{n-1}t)$, $a > 1$)
-and repair times $\{Y_n\}$ stochastically increasing ($G_n(t) = G(b^{n-1}t)$, $0 < b < 1$) —
+and repair times $\{Y_n\}$ stochastically increasing ($G_n(t) = G(b^{n-1}t)$, $0 \lt b \lt 1$) —
 but assumes a homogeneous failure mode structure.
 
 The GMBRM introduces **age-dependent failure mode probabilities** $p_i(n)$ that
@@ -248,7 +248,7 @@ The GMBRM synthesis identifies four open problems at the intersection of the pap
 The Power Law NHPP intensity $r(t\mid\alpha,\beta)=\alpha\beta t^{\beta-1}$ shares
 structural features with the **Hawkes self-exciting process** conditional intensity
 
-$$\lambda^*(t)=\mu+\sum_{t_i<t}\phi(t-t_i)$$
+$$\lambda^*(t)=\mu+\sum_{t_i \lt t}\phi(t-t_i)$$
 
 Both are parametric point-process intensities fitted to failure-time data via
 maximum likelihood, admit natural conjugate or near-conjugate Bayesian priors,
@@ -291,7 +291,7 @@ $H_n(t)=F(a^{n-1}t)$ and Bayesian-averaged NHPP survival functions.
 | NHPP Power Law intensity | $r(t\mid\alpha,\beta)=\alpha\beta t^{\beta-1}$ | [1][2] |
 | Failure mode probabilities | $(p_0,\ldots,p_{m-1})\sim\mathrm{Dirichlet}$ | [1][2] |
 | Working-time geometric deterioration | $F_n(t)=F(a^{n-1}t)$, $a>1$ | [3] |
-| Repair-time geometric deterioration | $G_n(t)=G(b^{n-1}t)$, $0<b<1$ | [3] |
+| Repair-time geometric deterioration | $G_n(t)=G(b^{n-1}t)$, $0 \lt b \lt 1$ | [3] |
 | Natural conjugate prior | $\pi(\alpha,\beta,p_0,\ldots,p_{m-1})$ | [2] |
 | Safety constraint | $P(N_m(A)\geq 1)\leq\omega$ | [2] |
 | Five-dimensional co-policy | $(p,K,N,S,T)$ | [3] |
@@ -314,7 +314,7 @@ T_\omega & \text{otherwise}
 
 ### Posterior Predictive Cost Rate ([2])
 
-After observing $n$ failures at times $y_1 < \cdots < y_n$, the Bayesian expected
+After observing $n$ failures at times $y_1 \lt \cdots \lt y_n$, the Bayesian expected
 cost rate integrates over the natural conjugate posterior:
 
 $$C_B(T) = \frac{E_\pi[R_1^*(T)]}{E_\pi[Y_1^*(T)]}$$
@@ -471,7 +471,7 @@ Subsystem k:  [ C_{k,1} ‖ C_{k,2} ‖ … ‖ C_{k,r} ]
 | Component $C_{i,j}$ fails; subsystem $i$ still has active backups | Mode $\ell$ (minor repair) | Minimal repair on $C_{i,j}$; intensity $r(t)$ unchanged |
 | All $r$ components in subsystem $i$ fail; remaining $k-1$ subsystems still up | Repairable catastrophic | Full subsystem repair; system continues |
 | Any subsystem failure causes series chain to break (no backup path) | Non-repairable catastrophic ($m$-th mode) | System replacement |
-| System reaches planned age $T$ with no catastrophic failure | Planned replacement | System replacement at cost $C_P < C_F$ |
+| System reaches planned age $T$ with no catastrophic failure | Planned replacement | System replacement at cost $C_P \lt C_F$ |
 
 This mapping shows that **the failure mode probabilities $p_0, \ldots, p_m$ are
 determined by the topology $(k, r)$** and the component-level NHPP parameters — they
@@ -632,10 +632,10 @@ The replacement cycle maps naturally to a Markov Decision Process:
 
 **PSRL algorithm** (Strens 2000; Osband et al. 2013):
 
-[1] At the start of each episode, **sample** $(\alpha, \beta, p) \sim \pi_{\text{posterior}}$
-[2] **Compute** $T^*(\alpha,\beta,p)$ — optimal threshold under sampled parameters
-[3] **Execute** policy $T^*$ for this episode; observe $(n_{\text{minor}}, n_{\text{cat}}, T_{\text{actual}})$
-[4] **Update** posterior with observed data → go to 1
+1. At the start of each episode, **sample** $(\alpha, \beta, p) \sim \pi_{\text{posterior}}$
+2. **Compute** $T^*(\alpha,\beta,p)$ — optimal threshold under sampled parameters
+3. **Execute** policy $T^*$ for this episode; observe $(n_{\text{minor}}, n_{\text{cat}}, T_{\text{actual}})$
+4. **Update** posterior with observed data → go to step 1
 
 This unifies Thompson Sampling (exploration via posterior sampling) with the MDP
 structure (multi-step planning under the sampled model). The key insight is that
@@ -698,8 +698,8 @@ then data dominates).
 | 140 | 0.611 | 0.030 | 1.645 | 6.1% |
 
 Starting from the conjugate prior Beta(1,9) with prior mean $p=0.10$
-(far from the truth $p=0.65$), PSRL reaches error $<10\%$ by episode 70 and
-$<7\%$ by episode 100. The posterior standard deviation decreases as
+(far from the truth $p=0.65$), PSRL reaches error $\lt 10\%$ by episode 70 and
+$\lt 7\%$ by episode 100. The posterior standard deviation decreases as
 $O(1/\sqrt{n})$, consistent with Bernstein-von Mises.
 
 ---
