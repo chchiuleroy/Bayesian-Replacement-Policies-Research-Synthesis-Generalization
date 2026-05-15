@@ -197,8 +197,7 @@ $$P(N_m(A)\geq 1)\leq\omega$$
 limiting the probability of a non-repairable catastrophic failure in the safety window
 $[0,A]$. The constrained optimum is:
 
-$$T_{SC}^{*} = \min(T^*,\, T_\omega),\qquad
-T_\omega = \sup\{T>0 : b(T)\leq -\ln(1-\omega)\}$$
+$$T_{SC}^{\ast} = \min(T^{\ast},\, T_\omega),\qquad T_\omega = \sup\{T\gt 0 : b(T)\leq -\ln(1-\omega)\}$$
 
 In [2] this constraint governs a scalar age-replacement policy.
 The GMBRM **lifts the safety constraint to the full five-dimensional co-policy
@@ -396,18 +395,14 @@ Under the regularity conditions that $r(t)$ is continuous and strictly increasin
 and $C_F > C_P$, a unique finite $T^*$ exists satisfying the first-order condition.
 With the safety constraint, the constrained optimum is:
 
-$$T_{SC}^{*} =
-\begin{cases}
-T^* & \text{if } T^* \leq T_\omega \\
-T_\omega & \text{otherwise}
-\end{cases}$$
+$$T_{SC}^{\ast} = \begin{cases} T^{\ast} & \text{if } T^{\ast} \leq T_\omega \\ T_\omega & \text{otherwise} \end{cases}$$
 
 ### Posterior Predictive Cost Rate ([2])
 
 After observing $n$ failures at times $y_1 \lt \cdots \lt y_n$, the Bayesian expected
 cost rate integrates over the natural conjugate posterior:
 
-$$C_B(T) = \frac{E_\pi[R_1^{*}(T)]}{E_\pi[Y_1^{*}(T)]}$$
+$$C_B(T) = \frac{E_\pi[R_1^{\ast}(T)]}{E_\pi[Y_1^{\ast}(T)]}$$
 
 where $E_\pi[\cdot]$ has closed form due to conjugacy — the posterior marginals
 remain $\mathrm{Gamma}$ and $\mathrm{Dirichlet}$ after sequential updating.
