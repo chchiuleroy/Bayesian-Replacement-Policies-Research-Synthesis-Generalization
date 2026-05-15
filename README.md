@@ -97,9 +97,9 @@ The following symbols are used consistently throughout this document and the acc
 | $\pi(\cdot)$ | Prior or posterior distribution over model parameters |
 | $(\tilde{n}, \lambda, \gamma, y_n)$ | Sufficient statistics for conjugate posterior (Huang & Bier [7]) |
 | $(\theta_0,\ldots,\theta_{m-1})$ | Dirichlet hyperparameters for failure mode probabilities |
-| $R_1^*$ | Random cost incurred in one replacement cycle |
-| $Y_1^*$ | Random length of one replacement cycle |
-| $C_B(T) = E_\pi[R_1^*] / E_\pi[Y_1^*]$ | Bayesian long-run cost rate (Renewal Reward Theorem) |
+| $R_1^{*}$ | Random cost incurred in one replacement cycle |
+| $Y_1^{*}$ | Random length of one replacement cycle |
+| $C_B(T) = E_\pi[R_1^{*}] / E_\pi[Y_1^{*}]$ | Bayesian long-run cost rate (Renewal Reward Theorem) |
 
 ### Parallel-Series System (Simulation)
 
@@ -197,7 +197,7 @@ $$P(N_m(A)\geq 1)\leq\omega$$
 limiting the probability of a non-repairable catastrophic failure in the safety window
 $[0,A]$. The constrained optimum is:
 
-$$T_{SC}^* = \min(T^*,\, T_\omega),\qquad
+$$T_{SC}^{*} = \min(T^*,\, T_\omega),\qquad
 T_\omega = \sup\{T>0 : b(T)\leq -\ln(1-\omega)\}$$
 
 In [2] this constraint governs a scalar age-replacement policy.
@@ -277,9 +277,9 @@ $$C^*(\mathbf{u}) = \min_{\mathbf{u}} \frac{E_\pi[\text{cost per cycle}]}{E_\pi[
 
 where $\mathbf{u}=(p,K,N,S,T)$ is the co-policy, expectations are taken over the
 posterior $\pi(\alpha,\beta,a,b\mid\text{data})$, and the cycle cost
-$R_1^*(\mathbf{u})$ decomposes as:
+$R_1^{*}(\mathbf{u})$ decomposes as:
 
-$$E_\pi[R_1^*] = -c_w\,\Omega_1 + c_r\,\Omega_2 + \eta\,\Omega_3 + c_e\,v + c$$
+$$E_\pi[R_1^{*}] = -c_w\,\Omega_1 + c_r\,\Omega_2 + \eta\,\Omega_3 + c_e\,v + c$$
 
 with $\Omega_1,\Omega_2,\Omega_3$ integrating over geometric-process CDFs
 $H_n(t)=F(a^{n-1}t)$ and Bayesian-averaged NHPP survival functions.
@@ -306,7 +306,7 @@ Under the regularity conditions that $r(t)$ is continuous and strictly increasin
 and $C_F > C_P$, a unique finite $T^*$ exists satisfying the first-order condition.
 With the safety constraint, the constrained optimum is:
 
-$$T_{SC}^* =
+$$T_{SC}^{*} =
 \begin{cases}
 T^* & \text{if } T^* \leq T_\omega \\
 T_\omega & \text{otherwise}
@@ -317,7 +317,7 @@ T_\omega & \text{otherwise}
 After observing $n$ failures at times $y_1 \lt \cdots \lt y_n$, the Bayesian expected
 cost rate integrates over the natural conjugate posterior:
 
-$$C_B(T) = \frac{E_\pi[R_1^*(T)]}{E_\pi[Y_1^*(T)]}$$
+$$C_B(T) = \frac{E_\pi[R_1^{*}(T)]}{E_\pi[Y_1^{*}(T)]}$$
 
 where $E_\pi[\cdot]$ has closed form due to conjugacy — the posterior marginals
 remain $\mathrm{Gamma}$ and $\mathrm{Dirichlet}$ after sequential updating.
